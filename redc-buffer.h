@@ -1,3 +1,6 @@
+#if !defined _REDC_BUFFER_H
+#define _REDC_BUFFER_H
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <float.h>
@@ -18,9 +21,25 @@
 #define fltof(_Value) ((float)(_Value))
 #define dblof(_Value) ((double)(_Value))
 
+#define REDC_FNV_OFFSET 0xcbf29ce484222325LLU
+#define REDC_FNV_PRIME 0x00000100000001b3LLU
+
 #define REDC_FNV __uint64_t
+
 #define REDC_STR REDC_CHAR *
-#define REDC_PTR void *
+
+typedef void (* redc__func_ptr)(void);
+#define REDC_FUNC redc__func_ptr
+
+typedef struct {
+    REDC_FUNC ptr;
+    REDC_CHAR * name;
+} REDC_FUNCTION_DATA;
+
+#define REDC_BUFFER_FUNCTION(_Name)                                                 \
+    void REDC_MERGE(REDC_BUFFER_FUNCTION_, _Name) (void);                           \
+    REDC_FUNCTION_DATA _Name = {REDC_MERGE(REDC_BUFFER_FUNCTION_, _Name), #_Name};  \
+    void REDC_MERGE(REDC_BUFFER_FUNCTION_, _Name) (void)
 
 union redcBufferDValue {
     REDC_CHAR Char;
@@ -28,26 +47,28 @@ union redcBufferDValue {
     REDC_FLOAT Float;
     REDC_FNV Fnv;
     REDC_STR Str;
-    REDC_PTR Ptr;
+    REDC_FUNC Func;
 };
 
 enum redcBufferDType {
-    Char, Int, Float, Fnv, Str, Ptr
+    Char, Int, Float, Fnv, Str, Func
 };
 
-REDC_CHAR * redc__buffer_dtype_name[] = { "Char", "Int", "Float", "Fnv", "Str", "Ptr" };
+REDC_CHAR * redc__buffer_dtype_name[] = { "Char", "Int", "Float", "Fnv", "Str", "Func" };
 #define REDC_BUFFER_DTYPE_NAME(_DType) (redc__buffer_dtype_name[_DType])
 
 struct redcBufferNode {
     enum redcBufferDType DType;
     union redcBufferDValue DValue;
     struct redcBufferNode * Next;
+    void * __ptr;
 };
 
 #define REDC_BUFFER_NEW_NODE(...) (__VA_OPT__(__VA_ARGS__ =) (struct redcBufferNode *)malloc(sizeof(struct redcBufferNode)))
 #define REDC_BUFFER_JUMP(_Node) (_Node) = (_Node->Next)
 #define REDC_BUFFER_DATA(_Node, _Type, _Value) (_Node->DType = _Type), _Node->DValue._Type = _Value
 #define REDC_BUFFER_TERMINATE(_Node) _Node->Next = NULL
+#define REDC_BUFFER_PTR(_Node, _Value) _Node->__ptr = _Value 
 
 struct redcBufferNode * redcBuffer;
 struct redcBufferNode * redcBufferLast;
@@ -58,6 +79,16 @@ REDC_INT redcBufferInit(void);
 REDC_INT redcBufferPush_Int(REDC_INT _Value);
 REDC_INT redcBufferPush_Char(REDC_CHAR _Value);
 REDC_INT redcBufferPush_Float(REDC_FLOAT _Value);
+REDC_INT redcBufferPush_Str(REDC_STR _Value);
+REDC_INT redcBufferPush_Fnv(REDC_FNV _Value);
+
+REDC_INT redc__buffer_push_func(REDC_FUNC _Value, REDC_CHAR * _Name);
+REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA * _Value);
+
+#define redcBufferPush_Func(_Value) _Generic( (_Value),                     \
+    REDC_FUNC : redc__buffer_push_func((REDC_FUNC)&_Value, #_Value),        \
+    default : redc__buffer_push_func_data((REDC_FUNCTION_DATA *)&_Value)    \
+)
 
 void redcShowBufferNode(struct redcBufferNode * _Node);
 
@@ -122,17 +153,28 @@ REDC_INT redcBufferPush_String(REDC_STR _Value) {
     return 1;
 }
 
-REDC_INT redcBufferPush_Ptr(REDC_PTR _Value) {
+REDC_INT redc__buffer_push_func(REDC_FUNC _Value, REDC_CHAR * _Name) {
     if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
     REDC_BUFFER_JUMP(redcBufferLast);
-    REDC_BUFFER_DATA(redcBufferLast, Ptr, _Value);
+    REDC_BUFFER_DATA(redcBufferLast, Func, _Value);
+    REDC_BUFFER_PTR(redcBufferLast, _Name);
+    REDC_BUFFER_TERMINATE(redcBufferLast);
+    redcBufferLength++;
+    return 1;
+}
+
+REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA *_Value) {
+    if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
+    REDC_BUFFER_JUMP(redcBufferLast);
+    REDC_BUFFER_DATA(redcBufferLast, Func, _Value->ptr);
+    REDC_BUFFER_PTR(redcBufferLast, _Value->name);
     REDC_BUFFER_TERMINATE(redcBufferLast);
     redcBufferLength++;
     return 1;
 }
 
 // One simple interface to push to the redcBuffer
-#define REDC_BUFFER_PUSH(_DType) redcBufferLength++, ((redcBufferLast = (redcBufferLast->Next = REDC_BUFFER_NEW_NODE()))->Next = NULL), (redcBufferLast->DType = _DType), redcBufferLast->DValue._DType =
+#define REDC_BUFFER_PUSH(_DType) redcBufferLength++, ((redcBufferLast = (redcBufferLast->Next = REDC_BUFFER_NEW_NODE()))->Next = NULL), (redcBufferLast->__ptr = NULL), (redcBufferLast->DType = _DType), redcBufferLast->DValue._DType =
 
 
 /* Deletion Functions */
@@ -214,6 +256,10 @@ REDC_INT redc__lineno = 0;
 #define REDC_NO_LINENO redc__lineno = -1
 #define REDC_COLOR_NUMBERS "\033[38;2;150;75;200m"
 #define REDC_COLOR_STRINGS "\033[38;2;225;150;100m"
+#define REDC_COLOR_DTYPES "\033[38;2;100;150;200m"
+#define REDC_COLOR_NAMES "\033[38;2;200;240;100m"
+#define REDC_COLOR_WHITE "\033[38;2;250;250;250m"
+#define REDC_COLOR_NONE "\033[39m"
 
 void redcShowBufferNode(struct redcBufferNode * _Node) {
     
@@ -233,9 +279,12 @@ void redcShowBufferNode(struct redcBufferNode * _Node) {
     else if (_Node->DType == Float) redc_i += printf(   REDC_COLOR_NUMBERS " %f", dblof(_Node->DValue.Float));
     else if (_Node->DType == Fnv) redc_i += printf(     REDC_COLOR_NUMBERS " %lu", _Node->DValue.Fnv);
     else if (_Node->DType == Str) redc_i += printf(     REDC_COLOR_STRINGS " \"%s\"", _Node->DValue.Str);
-    else if (_Node->DType == Ptr) redc_i += printf(     REDC_COLOR_NUMBERS " %p", _Node->DValue.Ptr);
+
+    else if (_Node->DType == Func) redc_i += printf(
+        REDC_COLOR_DTYPES " void " REDC_COLOR_NAMES "%s" REDC_COLOR_WHITE "(" REDC_COLOR_DTYPES "void" REDC_COLOR_WHITE ");", _Node->__ptr ? (REDC_CHAR *)_Node->__ptr : (REDC_CHAR *)"?"
+    );
     
-    printf("\033[39m");
+    printf(REDC_COLOR_NONE);
     
     if (redc__lineshade == Light) redc__lineshade = Dark; else redc__lineshade = Light;
     
@@ -295,5 +344,9 @@ void redcShowBuffer(struct redcBufferNode * _Buffer) {
 #define push REDC_BUFFER_PUSH
 #define pop REDC_BUFFER_DELETE
 #define show REDC_BUFFER_SHOW
+#define def REDC_BUFFER_FUNCTION
+#define push_func redcBufferPush_Func
+
+#endif
 
 #endif
