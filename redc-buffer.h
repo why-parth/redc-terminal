@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <float.h>
 
+#define REDC_TRY(_InitFunction, ...) for ( REDC_INT __VA_OPT__(__VA_ARGS__,) redc_exit = 1; redc_exit; redc_exit = 0 ) if (!( __VA_OPT__(__VA_ARGS__ =) _InitFunction))
+
 #define REDC_IMPLEMENT
 
 #define REDC__merge_token_2(a, b) a##b
@@ -37,9 +39,9 @@ typedef struct {
 } REDC_FUNCTION_DATA;
 
 #define REDC_BUFFER_FUNCTION(_Name)                                                 \
-    void REDC_MERGE(REDC_BUFFER_FUNCTION_, _Name) (void);                           \
-    REDC_FUNCTION_DATA _Name = {REDC_MERGE(REDC_BUFFER_FUNCTION_, _Name), #_Name};  \
-    void REDC_MERGE(REDC_BUFFER_FUNCTION_, _Name) (void)
+    void REDC_MERGE(RBF_, _Name) (void);                           \
+    REDC_FUNCTION_DATA _Name = {REDC_MERGE(RBF_, _Name), #_Name};  \
+    void REDC_MERGE(RBF_, _Name) (void)
 
 union redcBufferDValue {
     REDC_CHAR Char;
@@ -64,8 +66,9 @@ struct redcBufferNode {
     void * __ptr;
 };
 
+#define REDC_JUMP(_Node) (_Node) = (_Node->Next)
+
 #define REDC_BUFFER_NEW_NODE(...) (__VA_OPT__(__VA_ARGS__ =) (struct redcBufferNode *)malloc(sizeof(struct redcBufferNode)))
-#define REDC_BUFFER_JUMP(_Node) (_Node) = (_Node->Next)
 #define REDC_BUFFER_DATA(_Node, _Type, _Value) (_Node->DType = _Type), _Node->DValue._Type = _Value
 #define REDC_BUFFER_TERMINATE(_Node) _Node->Next = NULL
 #define REDC_BUFFER_PTR(_Node, _Value) _Node->__ptr = _Value 
@@ -90,8 +93,6 @@ REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA * _Value);
     default : redc__buffer_push_func_data((REDC_FUNCTION_DATA *)&_Value)    \
 )
 
-void redcShowBufferNode(struct redcBufferNode * _Node);
-
 #if defined (REDC_IMPLEMENT)
 
 /* Init Buffer */
@@ -110,7 +111,7 @@ REDC_INT redcBufferInit(void) {
 
 REDC_INT redcBufferPush_Char(REDC_CHAR _Value) {
     if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
-    REDC_BUFFER_JUMP(redcBufferLast);
+    REDC_JUMP(redcBufferLast);
     REDC_BUFFER_DATA(redcBufferLast, Char, _Value);
     REDC_BUFFER_TERMINATE(redcBufferLast);
     redcBufferLength++;
@@ -119,7 +120,7 @@ REDC_INT redcBufferPush_Char(REDC_CHAR _Value) {
 
 REDC_INT redcBufferPush_Int(REDC_INT _Value) {
     if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
-    REDC_BUFFER_JUMP(redcBufferLast);
+    REDC_JUMP(redcBufferLast);
     REDC_BUFFER_DATA(redcBufferLast, Int, _Value);
     REDC_BUFFER_TERMINATE(redcBufferLast);
     redcBufferLength++;
@@ -128,7 +129,7 @@ REDC_INT redcBufferPush_Int(REDC_INT _Value) {
 
 REDC_INT redcBufferPush_Float(REDC_FLOAT _Value) {
     if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
-    REDC_BUFFER_JUMP(redcBufferLast);
+    REDC_JUMP(redcBufferLast);
     REDC_BUFFER_DATA(redcBufferLast, Float, _Value);
     REDC_BUFFER_TERMINATE(redcBufferLast);
     redcBufferLength++;
@@ -137,7 +138,7 @@ REDC_INT redcBufferPush_Float(REDC_FLOAT _Value) {
 
 REDC_INT redcBufferPush_Fnv(REDC_FNV _Value) {
     if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
-    REDC_BUFFER_JUMP(redcBufferLast);
+    REDC_JUMP(redcBufferLast);
     REDC_BUFFER_DATA(redcBufferLast, Fnv, _Value);
     REDC_BUFFER_TERMINATE(redcBufferLast);
     redcBufferLength++;
@@ -146,7 +147,7 @@ REDC_INT redcBufferPush_Fnv(REDC_FNV _Value) {
 
 REDC_INT redcBufferPush_String(REDC_STR _Value) {
     if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
-    REDC_BUFFER_JUMP(redcBufferLast);
+    REDC_JUMP(redcBufferLast);
     REDC_BUFFER_DATA(redcBufferLast, Str, _Value);
     REDC_BUFFER_TERMINATE(redcBufferLast);
     redcBufferLength++;
@@ -155,7 +156,7 @@ REDC_INT redcBufferPush_String(REDC_STR _Value) {
 
 REDC_INT redc__buffer_push_func(REDC_FUNC _Value, REDC_CHAR * _Name) {
     if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
-    REDC_BUFFER_JUMP(redcBufferLast);
+    REDC_JUMP(redcBufferLast);
     REDC_BUFFER_DATA(redcBufferLast, Func, _Value);
     REDC_BUFFER_PTR(redcBufferLast, _Name);
     REDC_BUFFER_TERMINATE(redcBufferLast);
@@ -165,7 +166,7 @@ REDC_INT redc__buffer_push_func(REDC_FUNC _Value, REDC_CHAR * _Name) {
 
 REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA *_Value) {
     if (!REDC_BUFFER_NEW_NODE(redcBufferLast->Next)) return 0;
-    REDC_BUFFER_JUMP(redcBufferLast);
+    REDC_JUMP(redcBufferLast);
     REDC_BUFFER_DATA(redcBufferLast, Func, _Value->ptr);
     REDC_BUFFER_PTR(redcBufferLast, _Value->name);
     REDC_BUFFER_TERMINATE(redcBufferLast);
@@ -249,6 +250,8 @@ REDC_INT redcBufferDeleteRange(struct redcBufferNode * _Buffer, REDC_INT _Index,
 
 /* Display function(s) */
 
+void redcShowBufferNode(struct redcBufferNode * _Node);
+
 enum { Dark, Light } redc__lineshade;
 REDC_INT redc__lineno = 0;
 
@@ -257,7 +260,7 @@ REDC_INT redc__lineno = 0;
 #define REDC_COLOR_NUMBERS "\033[38;2;150;75;200m"
 #define REDC_COLOR_STRINGS "\033[38;2;225;150;100m"
 #define REDC_COLOR_DTYPES "\033[38;2;100;150;200m"
-#define REDC_COLOR_NAMES "\033[38;2;200;240;100m"
+#define REDC_COLOR_NAMES "\033[38;2;170;240;100m"
 #define REDC_COLOR_WHITE "\033[38;2;250;250;250m"
 #define REDC_COLOR_NONE "\033[39m"
 
@@ -341,9 +344,11 @@ void redcShowBuffer(struct redcBufferNode * _Buffer) {
 
 #if defined (REDC_BUFFER_NAMESPACE)
 
+#define try REDC_TRY
+
 #define push REDC_BUFFER_PUSH
 #define pop REDC_BUFFER_DELETE
-#define show REDC_BUFFER_SHOW
+#define show_buffers REDC_BUFFER_SHOW
 #define def REDC_BUFFER_FUNCTION
 #define push_func redcBufferPush_Func
 

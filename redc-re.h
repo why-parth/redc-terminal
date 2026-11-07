@@ -1,6 +1,0 @@
-#if !defined _REDC_RELATION_EXPRESSION_H
-#define _REDC_RELATION_EXPRESSION_H
-
-
-
-#endif
