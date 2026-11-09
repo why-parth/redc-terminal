@@ -10,9 +10,9 @@
 // RelEx Token Types
 enum redcRelExTType {
     Command,
-    Take,  // = 7
-    Upto,  // 5
-    Till, //int
+    Take,  // == 7
+    Upto,  // <= 5
+    Till, // is int
     Call
 };
 
@@ -53,7 +53,7 @@ REDC_INT redcRelExListLength;
 
 // Interface
 #define REDC_RELEX_NEW_NODE(...) (__VA_OPT__(__VA_ARGS__ =) (struct redcRelExNode *)malloc(sizeof(struct redcRelExNode)))
-#define REDC_RELEX_PUSH(_TType, ...) __VA_OPT__(__VA_ARGS__); ((redcRelExLast = (redcRelExLast->Next = REDC_RELEX_NEW_NODE()))->Next = NULL), (redcRelExLast->TData = lluof(0 __VA_OPT__(+ __VA_ARGS__))), (redcRelExLast->__t_data_name = __VA_OPT__(#__VA_ARGS__) ""), (redcRelExLast->TType = _TType), redcRelExLast->TPtr
+#define REDC_RELEX_PUSH(_TType, ...) ((redcRelExLast = (redcRelExLast->Next = REDC_RELEX_NEW_NODE()))->Next = NULL), (redcRelExLast->TData = redc__str_to_fnv(__VA_OPT__(#__VA_ARGS__) "")), (redcRelExLast->__t_data_name = __VA_OPT__(#__VA_ARGS__) ""), (redcRelExLast->TType = _TType), redcRelExLast->TPtr
 
 #define REDC_RELEX_APPEND redcRelExListLength++, (redcRelExListLast->Next = (struct redcRelExListNode *)malloc(sizeof(struct redcRelExListNode))), (redcRelExListLast = redcRelExListLast->Next), ((redcRelExListLast->RelEx = REDC_RELEX_NEW_NODE())->Next = NULL), (redcRelExListLast->RelEx->TType = 0), (redcRelExListLast->RelEx->TData = 0), (redcRelExListLast->RelEx->TPtr = NULL), redcRelExLast = redcRelExListLast->RelEx
 
@@ -104,6 +104,11 @@ REDC_INT redcRelExInit(void) {
 
 void redcShowRelEx(struct redcRelExNode * _Node);
 void redcShowRelEx(struct redcRelExNode * _Node);
+
+REDC_INT redcRelExIs_Str(const REDC_CHAR * _String);
+REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv);
+
+void redcRelExSource(void);
 
 #define REDC_SHOW_RELEX(_RelEx) redcShowRelEx(_RelEx->Next)
 void redcShowRelEx(struct redcRelExNode * _Node) {
@@ -182,10 +187,81 @@ void redcShowRelExList(struct redcRelExListNode * _Node) {
 
 #endif
 
+REDC_INT redcRelExIs_Str(const REDC_CHAR * _String) {
+    
+    struct redcRelExListNode * _start = redcRelExList->Next;
+
+    const REDC_CHAR * _Cmp = _start->RelEx->Next->__t_data_name;
+    REDC_INT i = 0;
+
+    REDC_INT ret = 0;
+
+    printf("searching : %s\nin", _String);
+
+    while (_start) {
+        _Cmp = _start->RelEx->Next->__t_data_name;
+
+        ret++;
+        i = 0;
+        for (; _String[i] && _Cmp[i]; i++) {
+            if (_Cmp[i] != _String[i]) break;
+        }
+
+        if (_Cmp[i] == _String[i]) { printf("\t \033[3m-> \033[4m%s\033[24;3m (found at %llu)\033[0m\n", _Cmp, lluof(ret)); return ret; }
+        else printf("\t    %s\n", _Cmp);
+
+        _start = _start->Next;
+    }
+
+    printf("not found!\n");
+    return 0;
+}
+
+REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv) {
+    struct redcRelExListNode * _start = redcRelExList->Next;
+
+    const REDC_CHAR * _Name = _start->RelEx->Next->__t_data_name;
+    REDC_INT i = 0;
+    REDC_FNV _Cmp;
+
+    REDC_INT ret = 0;
+
+    printf("searching an fnv :\nin");
+
+    while (_start) {
+        ret++;
+
+        _Name = _start->RelEx->Next->__t_data_name;
+        _Cmp = _start->RelEx->Next->TData;
+
+        if (_Fnv == _Cmp) { printf("\t \033[3m-> \033[4m%s\033[24;3m (found at %llu)\033[0m\n", _Name, lluof(ret)); return ret; }
+        else printf("\t    %s\n", _Name);
+
+        _start = _start->Next;
+    }
+
+    printf("not found!\n");
+    return 0;
+}
+
+void redcRelExSource(void) {
+
+    struct redcRelExListNode * _start = redcRelExList->Next;
+
+    while (_start) {
+
+        _start->RelEx->Next->TData = redc__str_to_fnv(_start->RelEx->Next->__t_data_name);
+        
+        _start = _start->Next;
+    }
+
+}
+
+
 #if defined (REDC_RELEX_NAMESPACE)
 
-#define Relex REDC_RELEX_APPEND; REDC_INT 
-#define command(_Cmd) REDC_RELEX_PUSH(Command, _Cmd)
+#define Relex REDC_RELEX_APPEND
+#define command(_Cmd) ; REDC_RELEX_PUSH(Command, _Cmd)
 #define take(_DType) ; REDC_RELEX_PUSH(Take, _DType)
 #define upto(_Count) ; REDC_RELEX_PUSH(Upto, _Count)
 #define till(_DType) ; REDC_RELEX_PUSH(Till, _DType)

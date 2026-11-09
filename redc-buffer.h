@@ -23,6 +23,8 @@
 #define fltof(_Value) ((float)(_Value))
 #define dblof(_Value) ((double)(_Value))
 
+#define ischar == (REDC_CHAR)
+
 #define REDC_FNV_OFFSET 0xcbf29ce484222325LLU
 #define REDC_FNV_PRIME 0x00000100000001b3LLU
 
@@ -84,6 +86,8 @@ REDC_INT redcBufferPush_Char(REDC_CHAR _Value);
 REDC_INT redcBufferPush_Float(REDC_FLOAT _Value);
 REDC_INT redcBufferPush_Str(REDC_STR _Value);
 REDC_INT redcBufferPush_Fnv(REDC_FNV _Value);
+
+REDC_FNV redc__str_to_fnv(const REDC_CHAR * _String);
 
 REDC_INT redc__buffer_push_func(REDC_FUNC _Value, REDC_CHAR * _Name);
 REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA * _Value);
@@ -172,6 +176,17 @@ REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA *_Value) {
     REDC_BUFFER_TERMINATE(redcBufferLast);
     redcBufferLength++;
     return 1;
+}
+
+REDC_FNV redc__str_to_fnv(const REDC_CHAR * _String) {
+    if (!_String) return 0;
+    REDC_FNV ret = REDC_FNV_OFFSET;
+    REDC_CHAR * ptr = (REDC_CHAR *)_String;
+    do {
+        ret *= REDC_FNV_PRIME;
+        ret ^= *ptr;
+    } while (*++ptr);
+    return ret;
 }
 
 // One simple interface to push to the redcBuffer
