@@ -1,6 +1,7 @@
 #include <stdio.h>
 #define REDC_BUFFER_NAMESPACE
 #define REDC_RELEX_NAMESPACE
+#define REDC_PARSE_NAMESPACE
 #include "redc-parse.h"
 
 def(sub) {
@@ -38,17 +39,31 @@ int main (const int argc, const char * argv[]) {
     // redcRelExSource();
 
     // redcRelExSource();
-    redcRelExIs_Fnv( redc__str_to_fnv("source") );
+    // redcRelExIs_Fnv( REDC_FNV_SOURCE );
+
+
+    // REDC_BUFFER_PUSH(Str) "this";
 
 
 
+    show_buffer;
 
-
-
-    // redcParsePollString
-    // ("gcc path = 'this is the path  ->  here' compile main.c nl = \"\\n\"");
+    parse( "add 45 67" );
+    
+    
+    show_buffer;
+    
+    
+    // printf(
+        //     "%s",
+    //     REDC_BUFFER_DTYPE_NAME(
+    //         redc__str_buffer_d_type("\" this is a string \"")
+    //     )
+    // );
 
     putchar('\n');
+
+
 
     return 0;
 }

@@ -20,13 +20,16 @@
 
 #define intof(_Value) ((int)(_Value))
 #define lluof(_Value) ((unsigned long long int)(_Value))
+#define lldof(_Value) ((long long int)(_Value))
 #define fltof(_Value) ((float)(_Value))
-#define dblof(_Value) ((double)(_Value))
+#define dblof(_Value) ((long double)(_Value))
 
 #define ischar == (REDC_CHAR)
 
 #define REDC_FNV_OFFSET 0xcbf29ce484222325LLU
 #define REDC_FNV_PRIME 0x00000100000001b3LLU
+
+#define REDC_FNV_SOURCE 0x7f7c5ab45de18b1e
 
 #define REDC_FNV __uint64_t
 
@@ -66,6 +69,7 @@ struct redcBufferNode {
     union redcBufferDValue DValue;
     struct redcBufferNode * Next;
     void * __ptr;
+    REDC_INT __int;
 };
 
 #define REDC_JUMP(_Node) (_Node) = (_Node->Next)
@@ -91,6 +95,8 @@ REDC_FNV redc__str_to_fnv(const REDC_CHAR * _String);
 
 REDC_INT redc__buffer_push_func(REDC_FUNC _Value, REDC_CHAR * _Name);
 REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA * _Value);
+
+enum redcBufferDType redc__str_buffer_d_type(const REDC_CHAR * _String);
 
 #define redcBufferPush_Func(_Value) _Generic( (_Value),                     \
     REDC_FUNC : redc__buffer_push_func((REDC_FUNC)&_Value, #_Value),        \
@@ -189,9 +195,41 @@ REDC_FNV redc__str_to_fnv(const REDC_CHAR * _String) {
     return ret;
 }
 
-// One simple interface to push to the redcBuffer
-#define REDC_BUFFER_PUSH(_DType) redcBufferLength++, ((redcBufferLast = (redcBufferLast->Next = REDC_BUFFER_NEW_NODE()))->Next = NULL), (redcBufferLast->__ptr = NULL), (redcBufferLast->DType = _DType), redcBufferLast->DValue._DType =
+#define REDC__char_is_num(_Char) ('0' <= _Char && _Char <= '9')
+#define REDC__char_is_alpha_lower(_Char) ('a' <= _Char && _Char <= 'z')
+#define REDC__char_is_alpha_upper(_Char) ('A' <= _Char && _Char <= 'Z')
+#define REDC__char_is_alpha(_Char) (REDC__char_is_alpha_lower(_Char) || REDC__char_is_alpha_upper(_Char))
 
+enum redcBufferDType redc__str_buffer_d_type(const REDC_CHAR * _String) {
+    if (!_String) return 0;
+    if (*_String == '"' || *_String == '\'') return Str;
+
+    for (int i = 0; _String[i]; i++) {
+        if (_String[i] == '.') return Float;
+        if (!REDC__char_is_num(_String[i])) return Fnv;
+    }
+    
+    return Int;
+}
+
+enum redcBufferDType redc__str_buffer_d_type_n(const REDC_CHAR * _String, REDC_INT _N) {
+    if (!_String) return 0;
+    if (*_String == '"' || *_String == '\'') return Str;
+
+    for (int i = 0; _String[i] && i < _N; i++) {
+        if (_String[i] == '.') return Float;
+        if (!REDC__char_is_num(_String[i])) return Fnv;
+    }
+    
+    return Int;
+}
+
+#define REDC_STR_DTYPE(_String, ...) REDC_MERGE(redc__str_buffer_d_type, _n)( _String __VA_OPT__(, __VA_ARGS__) )
+
+// One simple interface to push to the redcBuffer
+#define REDC_BUFFER_PUSH(_DType, ...) redcBufferLength++, ((redcBufferLast = (redcBufferLast->Next = REDC_BUFFER_NEW_NODE()))->Next = NULL), (redcBufferLast->__int = lluof(0 __VA_OPT__(+ __VA_ARGS__))), (redcBufferLast->__ptr = NULL), (redcBufferLast->DType = _DType), redcBufferLast->DValue._DType =
+
+#define REDC_BUFFER_PUSH_PTR redcBufferLast->__ptr = 
 
 /* Deletion Functions */
 
@@ -292,11 +330,22 @@ void redcShowBufferNode(struct redcBufferNode * _Node) {
     redc_i += printf("%*c ", intof(20 - redc_i), ' ');
     
     REDC_BG_CLEAR;
-    if (_Node->DType == Char) redc_i += printf(         REDC_COLOR_STRINGS " '%c'", _Node->DValue.Char);
-    else if (_Node->DType == Int) redc_i += printf(     REDC_COLOR_NUMBERS " %lld", lluof(_Node->DValue.Int));
-    else if (_Node->DType == Float) redc_i += printf(   REDC_COLOR_NUMBERS " %f", dblof(_Node->DValue.Float));
-    else if (_Node->DType == Fnv) redc_i += printf(     REDC_COLOR_NUMBERS " %lu", _Node->DValue.Fnv);
-    else if (_Node->DType == Str) redc_i += printf(     REDC_COLOR_STRINGS " \"%s\"", _Node->DValue.Str);
+    if (_Node->DType == Char) redc_i += printf(                         REDC_COLOR_STRINGS " '%c'", _Node->DValue.Char);
+    else if (_Node->DType == Int) redc_i += printf(                     REDC_COLOR_NUMBERS " %lld", lluof(_Node->DValue.Int));
+    else if (_Node->DType == Float) redc_i += printf(                   REDC_COLOR_NUMBERS " %Lf", dblof(_Node->DValue.Float));
+
+    else if (_Node->DType == Fnv && _Node->__int) redc_i += printf(
+        REDC_COLOR_NAMES " %.*s"REDC_COLOR_NONE "%s" REDC_COLOR_NUMBERS "%lx" REDC_COLOR_NONE "%s",
+        intof(_Node->__int), (REDC_CHAR *)(_Node->__ptr ? _Node->__ptr : ""), (_Node->__ptr ? "(" : ""), _Node->DValue.Fnv, (_Node->__ptr ? ")" : "")
+    );
+
+    else if (_Node->DType == Fnv) redc_i += printf(
+        REDC_COLOR_NAMES " %s"REDC_COLOR_NONE "%s" REDC_COLOR_NUMBERS "%lx" REDC_COLOR_NONE "%s",
+        (REDC_CHAR *)(_Node->__ptr ? _Node->__ptr : ""), (_Node->__ptr ? "(" : ""), _Node->DValue.Fnv, (_Node->__ptr ? ")" : "")
+    );
+    
+    else if (_Node->DType == Str && _Node->__int) redc_i += printf(     REDC_COLOR_STRINGS " \"%.*s\"", intof(_Node->__int), _Node->DValue.Str);
+    else if (_Node->DType == Str) redc_i += printf(                     REDC_COLOR_STRINGS " \"%s\"", _Node->DValue.Str);
 
     else if (_Node->DType == Func) redc_i += printf(
         REDC_COLOR_DTYPES " void " REDC_COLOR_NAMES "%s" REDC_COLOR_WHITE "(" REDC_COLOR_DTYPES "void" REDC_COLOR_WHITE ");", _Node->__ptr ? (REDC_CHAR *)_Node->__ptr : (REDC_CHAR *)"?"
@@ -363,7 +412,7 @@ void redcShowBuffer(struct redcBufferNode * _Buffer) {
 
 #define push REDC_BUFFER_PUSH
 #define pop REDC_BUFFER_DELETE
-#define show_buffers REDC_BUFFER_SHOW
+#define show_buffer REDC_BUFFER_SHOW
 #define def REDC_BUFFER_FUNCTION
 #define push_func redcBufferPush_Func
 
