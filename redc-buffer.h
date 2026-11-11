@@ -193,7 +193,7 @@ REDC_FNV redc__str_to_fnv(const REDC_CHAR * _String) {
     if (!_String) return 0;
 
     /* Adding an exception so that no all values get converted into FNV. The values from 0 to 9 remain as they are.*/
-    if ('0' <= _String[0] && _String[0] <= '9') {printf("THIS");return _String[0] - '0';}
+    if ('0' <= _String[0] && _String[0] <= '9') { return _String[0] - '0'; }
 
     REDC_FNV ret = REDC_FNV_OFFSET;
     REDC_CHAR * ptr = (REDC_CHAR *)_String;

@@ -34,7 +34,9 @@ int main (const int argc, const char * argv[]) {
     // All RelEx (Relation Expressions)
     Relex command(source) take(Str) call(source_func);
     Relex command(gcc) take(Str) call(compile_func);
-    Relex command(add) take(Int) take(Int) call(add_func);
+    __crtptr Relex command(add) take(Int) take(Int) call(add_func);
+    Relex command(take_3) upto(3) call(add_func);
+    Relex command(till_str) till(Str) call(add_func);
 
     // // Showing each RelEx
     // show_relex_list;
@@ -53,14 +55,17 @@ int main (const int argc, const char * argv[]) {
     /* CRT is coming along pretty nice! */
 
     // 'redc__parse_buffer_str_max_len' is set to 8 for demonstation.
-    printf("Type a command!\n");
+
+    printf("Alpha Run of the redc's CRT integration!\n");
 
     crt_loop() till_no_input;
 
     show_buffer;
-
-    redcCRTRun(1);
-  
+    
+    crt_run();
+    
+    show_buffer;
+    
     putchar('\n');
 
     return 0;
