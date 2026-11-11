@@ -26,9 +26,10 @@ def(compile_func) {
 int main (const int argc, const char * argv[]) {
 
     // Init
-    try (redcBufferInit(), code) { printf("could not initialize redc buffer : %llu\n", lluof(code)); return -1; }
-    try (redcRelExInit(), code) { printf("could not initialize redc relex : %llu\n", lluof(code)); return -1; }
-    try (redcParseInit(), code) { printf("could not initialize redc parse : %llu\n", lluof(code)); return -1; }
+    try (redcBufferInit(), code) { printf("could not initialize redc Buffer : %llu\n", lluof(code)); return -1; }
+    try (redcRelExInit(), code) { printf("could not initialize redc RelEx : %llu\n", lluof(code)); return -1; }
+    try (redcParseInit(), code) { printf("could not initialize redc Parse : %llu\n", lluof(code)); return -1; }
+    try (redcCRTInit(), code) { printf("could not initialize redc CRT : %llu\n", lluof(code)); return -1; }
 
     // All RelEx (Relation Expressions)
     Relex command(source) take(Str) call(source_func);
@@ -52,15 +53,13 @@ int main (const int argc, const char * argv[]) {
     /* CRT is coming along pretty nice! */
 
     // 'redc__parse_buffer_str_max_len' is set to 8 for demonstation.
-    printf("Type a big english sentence!\n");
+    printf("Type a command!\n");
 
     crt_loop() till_no_input;
 
     show_buffer;
 
-    printf("[");
-    show_stored_strings;
-    printf("]");
+    redcCRTRun(1);
   
     putchar('\n');
 

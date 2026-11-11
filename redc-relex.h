@@ -106,8 +106,10 @@ REDC_INT redcRelExInit(void) {
 void redcShowRelEx(struct redcRelExNode * _Node);
 void redcShowRelEx(struct redcRelExNode * _Node);
 
-REDC_INT redcRelExIs_Str(const REDC_CHAR * _String);
-REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv);
+REDC_INT redcRelExIs_Str(const REDC_CHAR * _String, REDC_INT _Log);
+REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv, REDC_INT _Log);
+
+struct redcRelExNode * redcRelExGetNode(REDC_INT _Index);
 
 void redcRelExSource(void);
 
@@ -190,7 +192,7 @@ void redcShowRelExList(struct redcRelExListNode * _Node) {
 
 #endif
 
-REDC_INT redcRelExIs_Str(const REDC_CHAR * _String) {
+REDC_INT redcRelExIs_Str(const REDC_CHAR * _String, REDC_INT _Log) {
     
     struct redcRelExListNode * _start = redcRelExList->Next;
 
@@ -199,7 +201,7 @@ REDC_INT redcRelExIs_Str(const REDC_CHAR * _String) {
 
     REDC_INT ret = 0;
 
-    printf("searching : %s\nin", _String);
+    if (_Log) printf("searching : %s\nin", _String);
 
     while (_start) {
         _Cmp = _start->RelEx->Next->__t_data_name;
@@ -210,17 +212,17 @@ REDC_INT redcRelExIs_Str(const REDC_CHAR * _String) {
             if (_Cmp[i] != _String[i]) break;
         }
 
-        if (_Cmp[i] == _String[i]) { printf("\t \033[3m-> \033[4m%s\033[24;3m (found at %llu)\033[0m\n", _Cmp, lluof(ret)); return ret; }
-        else printf("\t    %s\n", _Cmp);
+        if (_Cmp[i] == _String[i]) { if (_Log) printf("\t \033[3m-> \033[4m%s\033[24;3m (found at %llu)\033[0m\n", _Cmp, lluof(ret)); return ret; }
+        else if (_Log) printf("\t    %s\n", _Cmp);
 
         _start = _start->Next;
     }
 
-    printf("not found!\n");
+    if (_Log) printf("not found!\n");
     return 0;
 }
 
-REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv) {
+REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv, REDC_INT _Log) {
     struct redcRelExListNode * _start = redcRelExList->Next;
 
     const REDC_CHAR * _Name = _start->RelEx->Next->__t_data_name;
@@ -229,7 +231,7 @@ REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv) {
 
     REDC_INT ret = 0;
 
-    printf("searching an fnv :\nin");
+    if (_Log) printf("searching an fnv :\nin");
 
     while (_start) {
         ret++;
@@ -237,14 +239,23 @@ REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv) {
         _Name = _start->RelEx->Next->__t_data_name;
         _Cmp = _start->RelEx->Next->__t_name_fnv;
 
-        if (_Fnv == _Cmp) { printf("\t \033[3m-> \033[4m%s\033[24;3m (found at %llu)\033[0m\n", _Name, lluof(ret)); return ret; }
-        else printf("\t    %s\n", _Name);
+        if (_Fnv == _Cmp) { if (_Log) printf("\t \033[3m-> \033[4m%s\033[24;3m (found at %llu)\033[0m\n", _Name, lluof(ret)); return ret; }
+        else if (_Log) printf("\t    %s\n", _Name);
 
         _start = _start->Next;
     }
 
-    printf("not found!\n");
+    if (_Log) printf("not found!\n");
     return 0;
+}
+
+struct redcRelExNode * redcRelExGetNode(REDC_INT _Index) {
+    struct redcRelExListNode * ret = redcRelExList;
+    while (_Index--) {
+        ret = ret->Next;
+        if (!ret) return NULL;
+    }
+    return ret->RelEx;
 }
 
 void redcRelExSource(void) {
