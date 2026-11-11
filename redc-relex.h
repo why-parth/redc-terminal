@@ -37,6 +37,7 @@ struct redcRelExNode {
     struct redcRelExNode * Next;
     REDC_INT TData;
     REDC_CHAR * __t_data_name;
+    REDC_FNV __t_name_fnv;
     void * TPtr;
 };
 
@@ -53,7 +54,7 @@ REDC_INT redcRelExListLength;
 
 // Interface
 #define REDC_RELEX_NEW_NODE(...) (__VA_OPT__(__VA_ARGS__ =) (struct redcRelExNode *)malloc(sizeof(struct redcRelExNode)))
-#define REDC_RELEX_PUSH(_TType, ...) ((redcRelExLast = (redcRelExLast->Next = REDC_RELEX_NEW_NODE()))->Next = NULL), (redcRelExLast->TData = redc__str_to_fnv(__VA_OPT__(#__VA_ARGS__) "")), (redcRelExLast->__t_data_name = __VA_OPT__(#__VA_ARGS__) ""), (redcRelExLast->TType = _TType), redcRelExLast->TPtr
+#define REDC_RELEX_PUSH(_TType, ...) ((redcRelExLast = (redcRelExLast->Next = REDC_RELEX_NEW_NODE()))->Next = NULL), (redcRelExLast->TData = lluof(__VA_ARGS__)), (redcRelExLast->__t_name_fnv = redc__str_to_fnv(__VA_OPT__(#__VA_ARGS__) "")),(redcRelExLast->__t_data_name = __VA_OPT__(#__VA_ARGS__) ""), (redcRelExLast->TType = _TType), redcRelExLast->TPtr
 
 #define REDC_RELEX_APPEND redcRelExListLength++, (redcRelExListLast->Next = (struct redcRelExListNode *)malloc(sizeof(struct redcRelExListNode))), (redcRelExListLast = redcRelExListLast->Next), ((redcRelExListLast->RelEx = REDC_RELEX_NEW_NODE())->Next = NULL), (redcRelExListLast->RelEx->TType = 0), (redcRelExListLast->RelEx->TData = 0), (redcRelExListLast->RelEx->TPtr = NULL), redcRelExLast = redcRelExListLast->RelEx
 
@@ -118,7 +119,7 @@ void redcShowRelEx(struct redcRelExNode * _Node) {
     while (_Node) {
 
         printf(" %s%s " REDC_COLOR_NONE, REDC_RELEX_NODE_FORMAT(_Node));
-
+        
         if (_Node->TData) {
             printf("%s", REDC_RELEX_INFO_COLOR(_Node->TType));
             
@@ -133,11 +134,11 @@ void redcShowRelEx(struct redcRelExNode * _Node) {
                 case Till:
                 printf("%s ", REDC_BUFFER_DTYPE_NAME(_Node->TData));
                 break;
-
+                
                 case Upto:
                 printf("%llu ", lluof(_Node->TData));
                 break;
-
+                
                 case Call:
                 printf("%s" REDC_COLOR_WHITE "() ", _Node->__t_data_name);
                 break;
@@ -167,6 +168,8 @@ void redcShowRelExList(struct redcRelExListNode * _Node) {
     if (!_Node) printf( REDC_BG_G_STRING(60) " \033[31;3mnull       \033[0m  \033[3mnull\033[0m\n");
     else while (_Node) {
 
+        
+        
         if (redc__lineshade == Light) REDC_BG_G(20); else REDC_BG_G(25);
         printf("\033[31;1m");
         redc_i = printf(" re-%llu", lluof(redc__lineno));
@@ -174,7 +177,7 @@ void redcShowRelExList(struct redcRelExListNode * _Node) {
         printf("\033[39;22m");
         
         printf("%*c" REDC_BG_CLEAR_STRING " ", intof(12 - redc_i), ' ');
-
+        
         redcShowRelEx(_Node->RelEx->Next);
         
         REDC_JUMP(_Node);
@@ -232,7 +235,7 @@ REDC_INT redcRelExIs_Fnv(REDC_FNV _Fnv) {
         ret++;
 
         _Name = _start->RelEx->Next->__t_data_name;
-        _Cmp = _start->RelEx->Next->TData;
+        _Cmp = _start->RelEx->Next->__t_name_fnv;
 
         if (_Fnv == _Cmp) { printf("\t \033[3m-> \033[4m%s\033[24;3m (found at %llu)\033[0m\n", _Name, lluof(ret)); return ret; }
         else printf("\t    %s\n", _Name);
@@ -260,8 +263,8 @@ void redcRelExSource(void) {
 
 #if defined (REDC_RELEX_NAMESPACE)
 
-#define Relex REDC_RELEX_APPEND
-#define command(_Cmd) ; REDC_RELEX_PUSH(Command, _Cmd)
+#define Relex REDC_RELEX_APPEND; REDC_INT
+#define command(_Cmd) _Cmd ; REDC_RELEX_PUSH(Command, _Cmd)
 #define take(_DType) ; REDC_RELEX_PUSH(Take, _DType)
 #define upto(_Count) ; REDC_RELEX_PUSH(Upto, _Count)
 #define till(_DType) ; REDC_RELEX_PUSH(Till, _DType)

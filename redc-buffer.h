@@ -24,6 +24,11 @@
 #define fltof(_Value) ((float)(_Value))
 #define dblof(_Value) ((long double)(_Value))
 
+#define strof(_Value) (char *)(_Value)
+#define str_ptrof(_Value) (char **)(_Value)
+#define int_ptrof(_Value) (int *)(_Value)
+#define size_t_ptrof(_Value) (size_t *)(_Value)
+
 #define ischar == (REDC_CHAR)
 
 #define REDC_FNV_OFFSET 0xcbf29ce484222325LLU
@@ -186,6 +191,10 @@ REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA *_Value) {
 
 REDC_FNV redc__str_to_fnv(const REDC_CHAR * _String) {
     if (!_String) return 0;
+
+    /* Adding an exception so that no all values get converted into FNV. The values from 0 to 9 remain as they are.*/
+    if ('0' <= _String[0] && _String[0] <= '9') {printf("THIS");return _String[0] - '0';}
+
     REDC_FNV ret = REDC_FNV_OFFSET;
     REDC_CHAR * ptr = (REDC_CHAR *)_String;
     do {
@@ -335,12 +344,12 @@ void redcShowBufferNode(struct redcBufferNode * _Node) {
     else if (_Node->DType == Float) redc_i += printf(                   REDC_COLOR_NUMBERS " %Lf", dblof(_Node->DValue.Float));
 
     else if (_Node->DType == Fnv && _Node->__int) redc_i += printf(
-        REDC_COLOR_NAMES " %.*s"REDC_COLOR_NONE "%s" REDC_COLOR_NUMBERS "%lx" REDC_COLOR_NONE "%s",
+        REDC_COLOR_NAMES " %.*s" REDC_COLOR_NONE "%s" REDC_COLOR_NUMBERS "%lx" REDC_COLOR_NONE "%s",
         intof(_Node->__int), (REDC_CHAR *)(_Node->__ptr ? _Node->__ptr : ""), (_Node->__ptr ? "(" : ""), _Node->DValue.Fnv, (_Node->__ptr ? ")" : "")
     );
 
     else if (_Node->DType == Fnv) redc_i += printf(
-        REDC_COLOR_NAMES " %s"REDC_COLOR_NONE "%s" REDC_COLOR_NUMBERS "%lx" REDC_COLOR_NONE "%s",
+        REDC_COLOR_NAMES " %s" REDC_COLOR_NONE "%s" REDC_COLOR_NUMBERS "%lx" REDC_COLOR_NONE "%s",
         (REDC_CHAR *)(_Node->__ptr ? _Node->__ptr : ""), (_Node->__ptr ? "(" : ""), _Node->DValue.Fnv, (_Node->__ptr ? ")" : "")
     );
     
