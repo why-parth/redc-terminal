@@ -89,7 +89,9 @@ REDC_INT redcParseBufferHandle(void) {
         push(Str, redc__parse_global_string_n) REDC__parse_buffer_stored_string;
 
     }
-    
+
+    redc__parse_global_integer = 0;
+    redc__parse_global_fraction = 0;
 }
 
 #define REDC_COLOR_TERMINAL "\033[38;2;200;180;140m"
@@ -150,8 +152,6 @@ REDC_INT redcParseParseString(const REDC_CHAR * _String, REDC_INT _N, REDC_INT _
             redcParseBufferHandle();
             REDC_PARSE_GTF_RESET;
             string_start = 0;
-            redc__parse_global_integer = 0;
-            redc__parse_global_fraction = 0;
             is_float = 0;
             pushed = 1;
         }

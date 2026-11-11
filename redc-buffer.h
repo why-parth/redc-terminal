@@ -108,6 +108,13 @@ enum redcBufferDType redc__str_buffer_d_type(const REDC_CHAR * _String);
     default : redc__buffer_push_func_data((REDC_FUNCTION_DATA *)&_Value)    \
 )
 
+#define REDC_BUFFER_GET(_Index, _DType) redcBufferGetNode(_Index)->DValue._DType
+struct redcBufferNode * redcBufferGetNode(REDC_INT _Index) {
+    struct redcBufferNode * ret = redcBuffer->Next;
+    while (_Index--) ret = ret->Next;
+    return ret;
+}
+
 #if defined (REDC_IMPLEMENT)
 
 /* Init Buffer */
@@ -353,8 +360,8 @@ void redcShowBufferNode(struct redcBufferNode * _Node) {
         (REDC_CHAR *)(_Node->__ptr ? _Node->__ptr : ""), (_Node->__ptr ? "(" : ""), _Node->DValue.Fnv, (_Node->__ptr ? ")" : "")
     );
     
-    else if (_Node->DType == Str && _Node->__int) redc_i += printf(     REDC_COLOR_STRINGS " \"%.*s\"", intof(_Node->__int), _Node->DValue.Str);
-    else if (_Node->DType == Str) redc_i += printf(                     REDC_COLOR_STRINGS " \"%s\"", _Node->DValue.Str);
+    else if (_Node->DType == Str && _Node->__int) redc_i += printf(     REDC_COLOR_STRINGS " %.*s", intof(_Node->__int), _Node->DValue.Str);
+    else if (_Node->DType == Str) redc_i += printf(                     REDC_COLOR_STRINGS " %s", _Node->DValue.Str);
 
     else if (_Node->DType == Func) redc_i += printf(
         REDC_COLOR_DTYPES " void " REDC_COLOR_NAMES "%s" REDC_COLOR_WHITE "(" REDC_COLOR_DTYPES "void" REDC_COLOR_WHITE ");", _Node->__ptr ? (REDC_CHAR *)_Node->__ptr : (REDC_CHAR *)"?"
@@ -420,6 +427,9 @@ void redcShowBuffer(struct redcBufferNode * _Buffer) {
 #define try REDC_TRY
 
 #define push REDC_BUFFER_PUSH
+#define getf(i, type) REDC_BUFFER_GET(i, type)
+#define getb(i, type) REDC_BUFFER_GET(redcBufferLength - i, type)
+
 #define pop REDC_BUFFER_DELETE
 #define show_buffer REDC_BUFFER_SHOW
 #define def REDC_BUFFER_FUNCTION

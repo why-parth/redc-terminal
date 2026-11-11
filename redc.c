@@ -1,74 +1,52 @@
-// So that header files also declare the showing functions
+#include <stdlib.h>
 #include <stdio.h>
 
-// For a better namespace
-#define REDC_BUFFER_NAMESPACE
-#define REDC_RELEX_NAMESPACE
-#define REDC_PARSE_NAMESPACE
-#define REDC_CRT_NAMESPACE
-
-// redc-parse.h (it icluded redc-relex.h and redc-buffer.h)
-#include "redc-crt.h"
-
-// Defining functions
-def(add_func) {
-    printf("Numbers added!\n");
-}
-
-def(source_func) {
-    printf("C file is sourced!\n");
-}
-
-def(compile_func) {
-    printf("C file is compiled!\n");
-}
+#ifdef _WIN32
+#define SEP "\\"
+#define EXT ".exe"
+#define DEL "del"
+#define REN "ren"
+#define ESE 0
+#else
+#define SEP "/"
+#define EXT ""
+#define DEL "rm"
+#define REN "mv"
+#define ESE 8
+#endif
 
 int main (const int argc, const char * argv[]) {
-
-    // Init
-    try (redcBufferInit(), code) { printf("could not initialize redc Buffer : %llu\n", lluof(code)); return -1; }
-    try (redcRelExInit(), code) { printf("could not initialize redc RelEx : %llu\n", lluof(code)); return -1; }
-    try (redcParseInit(), code) { printf("could not initialize redc Parse : %llu\n", lluof(code)); return -1; }
-    try (redcCRTInit(), code) { printf("could not initialize redc CRT : %llu\n", lluof(code)); return -1; }
-
-    // All RelEx (Relation Expressions)
-    Relex command(source) take(Str) call(source_func);
-    Relex command(gcc) take(Str) call(compile_func);
-    __crtptr Relex command(add) take(Int) take(Int) call(add_func);
-    Relex command(take_3) upto(3) call(add_func);
-    Relex command(till_str) till(Str) call(add_func);
-
-    // // Showing each RelEx
-    // show_relex_list;
-
-    // // Showing the buffer (must be empty)
-    // show_buffer;
-
-    // // Passing an expression
-    // parse( "add 45 67");
     
-    // // Showing the buffer (must have some data in it)
-    // show_buffer;
+    // GCC Compilation
+    char cmd[1024];
+    sprintf(
+        cmd,
+        "gcc " "."SEP"redc-main.c " "%s%s%s" " -o .redcrt", 
+        (argc == 2) ? "-DSOURCE='\"" : "", (argc == 2) ? *(argv + 1) : "", (argc == 2) ? "\"'" : ""
+    );
+    int exit_code = system(cmd);
+    if (exit_code) return exit_code;
 
-    // /* The parsed data is not acted upon yet. */
+    // return
+    crt:
+    exit_code = system( "."SEP".redcrt"EXT );
+    exit_code = exit_code >> ESE;
 
-    /* CRT is coming along pretty nice! */
+    switch (exit_code) {
+        case 0:
+        return 0;
+        break;
 
-    // 'redc__parse_buffer_str_max_len' is set to 8 for demonstation.
+        case 64:
+        system( DEL " .redcrt " );
+        system( REN " .redcrt0 .redcrt " );
+        goto crt;
+        break;
 
-    printf("Alpha Run of the redc's CRT integration!\n");
+        default:
+        return exit_code;
+    }
 
-    crt_loop() till_no_input;
-
-    show_buffer;
-    
-    crt_run();
-    
-    show_buffer;
-    
-    putchar('\n');
-
-    return 0;
 }
 
 

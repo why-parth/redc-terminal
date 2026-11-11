@@ -29,7 +29,7 @@ REDC_INT redcCRTInit(void) {
 
 #define REDC_CRT_RUN_SHOW_TRUE if (_Log) printf( REDC_COLOR_NAMES "true\n" REDC_COLOR_NONE)
 #define REDC_CRT_RUN_SHOW_FALSE if (_Log) printf( REDC_COLOR_CONDITION "false\n" REDC_COLOR_NONE)
-#define REDC_CRT_RUN_SHOW_FALSE_EXIT { REDC_CRT_RUN_SHOW_FALSE; return 0; }
+#define REDC_CRT_RUN_SHOW_FALSE_EXIT { REDC_CRT_RUN_SHOW_FALSE; REDC_CRT_POINTER = _Node; return 0; }
 
 REDC_INT redcCRTRun(REDC_INT _Log, ...) {
 
@@ -136,12 +136,14 @@ REDC_INT redcCRTRun(REDC_INT _Log, ...) {
 
 #if defined (REDC_CRT_NAMESPACE)
 
+#define crt_run(...) redcCRTRun(__VA_OPT__(__VA_ARGS__, ) 0)
+
 #define crt_get(...) redcCRTIndent_0(__VA_ARGS__), redcCRTGet, redcParseParseString(redcCRTInput, redcCRTInputLen - 1, 0), free(redcCRTInput), redcCRTInput = NULL, redc__crt_input_cap = 0 
 #define crt_loop(...) for (REDC_INT redc__crt_loop_temp = 1 ; redc__crt_loop_temp;) do { if (redc__crt_loop_temp) redc__crt_loop_temp = 0; else crt_get(__VA_ARGS__); } while
+#define crt_run_loop(...) for (REDC_INT redc__crt_loop_temp = 1 ; redc__crt_loop_temp;) do { if (redc__crt_loop_temp) redc__crt_loop_temp = 0; else { crt_get(__VA_ARGS__); crt_run(); } } while
 
 #define till_no_input REDC_CRT_CONDITION_NO_INPUT
-
-#define crt_run(...) redcCRTRun(__VA_OPT__(__VA_ARGS__, ) 0)
+#define till_forever (1)
 
 #endif
 

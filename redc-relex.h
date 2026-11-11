@@ -161,7 +161,7 @@ void redcShowRelEx(struct redcRelExNode * _Node) {
 
     REDC_BG_CLEAR;
     
-    redc__lineshade++;
+    if (redc__lineshade == Light)  redc__lineshade = Dark; else redc__lineshade = Light;
 }
 
 #define REDC_SHOW_RELEX_LIST redcShowRelExList(redcRelExList->Next)
@@ -175,9 +175,7 @@ void redcShowRelExList(struct redcRelExListNode * _Node) {
     if (!_Node) printf( REDC_BG_G_STRING(60) " \033[31;3mnull       \033[0m  \033[3mnull\033[0m\n");
     else while (_Node) {
 
-        
-        
-        if (redc__lineshade == Light) REDC_BG_G(20); else REDC_BG_G(25);
+        if (redc__lineshade == Light) REDC_BG_G(24); else REDC_BG_G(26);
         printf("\033[31;1m");
         redc_i = printf(" re-%llu", lluof(redc__lineno));
         REDC_COLOR_NONE;
