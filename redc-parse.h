@@ -28,6 +28,8 @@ struct redc__parse_buffer_str_node {
 #define REDC_PARSE_GTF_RESET redc__parse_global_token_fnv = REDC_FNV_OFFSET
 #define REDC_PARSE_GTF_PUSH (redc__parse_global_token_fnv *= REDC_FNV_PRIME), redc__parse_global_token_fnv ^= 
 
+void redc__parse_buffer_str_list_delete(void);
+
 enum redcRelExTType redc__parse_t_type;
 enum redcBufferDType redc__parse_d_type;
 
@@ -47,7 +49,7 @@ REDC_INT redcParseInit(void) {
     redc__parse_buffer_str_last->_string = malloc(sizeof(REDC_CHAR) * 1024);
     redc__parse_buffer_str_last->_n = 0;
     redc__parse_buffer_str_last->_next = NULL;
-    redc__parse_buffer_str_max_len = 8;
+    redc__parse_buffer_str_max_len = 1024;
     redc__parse_buffer_str_delta_len = 0;
 }
 
@@ -179,12 +181,25 @@ REDC_INT redcParseParseString(const REDC_CHAR * _String, REDC_INT _N, REDC_INT _
 
 }
 
+void redc__parse_buffer_str_list_delete(void) {
+    struct redc__parse_buffer_str_node * _node = redc__parse_buffer_str_list->_next, *temp;
+    while (_node) {
+        temp = _node->_next;
+        free(_node->_string);
+        free(_node);
+        _node = temp;
+    }
+}
 
 #if defined (REDC_PARSE_NAMESPACE)
 
 #define parse(_String, ...) redcParseParseString(_String, __VA_OPT__(__VA_ARGS__,) 0, 0)
 
 #define show_stored_strings REDC__parse_buffer_show_stored_strings
+
+#define free_strings redc__parse_buffer_str_list_delete()
+#define free_dvalues REDC_BUFFER_DELETE(0, redcBufferLength - 1)
+#define free_buffers free_dvalues, free_strings
 
 #endif
 

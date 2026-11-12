@@ -43,6 +43,12 @@ int main (const int argc, const char * argv[]) {
         goto crt;
         break;
 
+        case 65:
+        system( DEL " .redcrt " );
+        system( REN " .redcrt0 .redcrt " );
+        goto crt;
+        break;
+
         default:
         return exit_code;
     }

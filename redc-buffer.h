@@ -35,6 +35,7 @@
 #define REDC_FNV_PRIME 0x00000100000001b3LLU
 
 #define REDC_FNV_SOURCE 0x7f7c5ab45de18b1e
+#define REDC_FNV_STK 0xd89fac186b7bccfb
 
 #define REDC_FNV __uint64_t
 
@@ -100,6 +101,11 @@ REDC_FNV redc__str_to_fnv(const REDC_CHAR * _String);
 
 REDC_INT redc__buffer_push_func(REDC_FUNC _Value, REDC_CHAR * _Name);
 REDC_INT redc__buffer_push_func_data(REDC_FUNCTION_DATA * _Value);
+
+
+REDC_INT redcBufferDeleteNode(struct redcBufferNode * _Buffer, REDC_INT _Index);
+REDC_INT redcBufferDeleteRange(struct redcBufferNode * _Buffer, REDC_INT _Index, REDC_INT _Count);
+
 
 enum redcBufferDType redc__str_buffer_d_type(const REDC_CHAR * _String);
 
@@ -249,10 +255,10 @@ enum redcBufferDType redc__str_buffer_d_type_n(const REDC_CHAR * _String, REDC_I
 
 /* Deletion Functions */
 
-REDC_INT redcBufferDelete(struct redcBufferNode * _Buffer, REDC_INT _Index) {
+REDC_INT redcBufferDeleteNode(struct redcBufferNode * _Buffer, REDC_INT _Index) {
     if (_Index - 1 >= redcBufferLength) {
         printf( "segmentation fault\t\t(index does not exist)\n" );
-        exit(-1);
+        return 0;
     }
     
     struct redcBufferNode * _A = _Buffer;
@@ -266,13 +272,14 @@ REDC_INT redcBufferDelete(struct redcBufferNode * _Buffer, REDC_INT _Index) {
     redcBufferLength--;
     if (_Buffer) free(_Buffer);
     _A->Next = _B;
+    if (!_B) redcBufferLast = _A;
     return 1;
 }
 
 REDC_INT redcBufferDeleteRange(struct redcBufferNode * _Buffer, REDC_INT _Index, REDC_INT _Count) {
     if (_Count && (_Index + _Count - 2 >= redcBufferLength)) {
         printf( "segmentation fault\t\t(index does not exist)\n" );
-        exit(-1);
+        return 0;
     }
 
     struct redcBufferNode * _A = _Buffer;
@@ -291,15 +298,15 @@ REDC_INT redcBufferDeleteRange(struct redcBufferNode * _Buffer, REDC_INT _Index,
     }
     
     _A->Next = _Buffer;
+    if (!_Buffer) redcBufferLast = _A;
     return 1;
 }
 
 // One simple interface to delete single or ranged index(es)
 
-#define REDC__buffer_delete_overload_ redcBufferDelete
+#define REDC__buffer_delete_overload_ redcBufferDeleteNode
 #define REDC__buffer_delete_overload_0 redcBufferDeleteRange
 #define REDC_BUFFER_DELETE(_Index, ...) REDC__merge_token_2(REDC__buffer_delete_overload_, __VA_OPT__(0))(redcBuffer, _Index + 1 __VA_OPT__(, __VA_ARGS__))
-
 
 /* If stdio.h is included */
 
@@ -403,7 +410,7 @@ void redcShowBuffer(struct redcBufferNode * _Buffer) {
     }
 
     else while (_Buffer) {
-
+        
         redcShowBufferNode(_Buffer);
 
         _Buffer = _Buffer->Next;
@@ -430,6 +437,7 @@ void redcShowBuffer(struct redcBufferNode * _Buffer) {
 #define getf(i, type) REDC_BUFFER_GET(i, type)
 #define getb(i, type) REDC_BUFFER_GET(redcBufferLength - i, type)
 
+#define buffer_len redcBufferLength
 #define pop REDC_BUFFER_DELETE
 #define show_buffer REDC_BUFFER_SHOW
 #define def REDC_BUFFER_FUNCTION

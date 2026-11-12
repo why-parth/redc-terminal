@@ -27,88 +27,123 @@ REDC_INT redcCRTInit(void) {
     redcCRTBufferPointer = redcBuffer;
 }
 
+#define REDC_CRT_RELINE_X printf(REDC_COLOR_CONDITION "\033[1s\033[1A x \033[1u" REDC_COLOR_NONE)
+
 #define REDC_CRT_RUN_SHOW_TRUE if (_Log) printf( REDC_COLOR_NAMES "true\n" REDC_COLOR_NONE)
 #define REDC_CRT_RUN_SHOW_FALSE if (_Log) printf( REDC_COLOR_CONDITION "false\n" REDC_COLOR_NONE)
-#define REDC_CRT_RUN_SHOW_FALSE_EXIT { REDC_CRT_RUN_SHOW_FALSE; REDC_CRT_POINTER = _Node; return 0; }
+#define REDC_CRT_RUN_SHOW_FALSE_EXIT {                                                                                          \
+    REDC_CRT_RUN_SHOW_FALSE;                                                                                                    \
+    if (_Tried == 1) _FirstEnd = _Node ? _Node : redcBufferLast;                                                                \
+    goto try_next;                                                                                                              \
+}                                                                                                                               \
 
 REDC_INT redcCRTRun(REDC_INT _Log, ...) {
-
+    
     struct redcRelExNode * _RelEx = NULL;
     struct redcBufferNode * _Node = REDC_CRT_POINTER->Next, * _Prev = REDC_CRT_POINTER;
-    struct redcBufferNode * _Before = NULL, * _Start = NULL, * _Stop = NULL;
+    struct redcBufferNode * _Before = NULL, * _Start = NULL, * _Stop = NULL, * _FirstEnd = NULL;
 
-    for ( ; _Node ; REDC_JUMP(_Prev), REDC_JUMP(_Node) ) {
+    REDC_INT _Tried = 0, _Matched = 0;
+    REDC_FNV _Fnv = 0;
+    REDC_INT _RelEx_i;
+
+    for ( ; _Node ; (_Prev = _Node), REDC_JUMP(_Node) ) {
         
         if (_Node->DType == Fnv) {
-            REDC_INT _RelEx_i = redcRelExIs_Fnv(_Node->DValue.Fnv, _Log);
-            if (!_RelEx_i) continue;
-            _RelEx = redcRelExGetNode(_RelEx_i);
+            _Tried = 0; _Matched = 0;
+            _Fnv = _Node->DValue.Fnv;
+            _RelEx_i = REDC_RELEX_FULL_SEARCH(_Fnv);
 
-            if (_Log) {
-                printf("relex : ");
-                show_relex(_RelEx);
-                putchar('\n');
-            }
 
             _Before = _Prev;
             _Start = _Node;
+            _FirstEnd = NULL;
 
-            struct redcRelExNode * _Check = _RelEx->Next->Next;
-            while (_Check) {
-                if (_Log) redcShowRelExNode(_Check), putchar(' ');
+            while (!_Matched && _RelEx_i) {
+                _Tried++;
+                _Node = _Start;
+                _Prev = _Before;
+                _RelEx = redcRelExGetNode(_RelEx_i);
 
-                // Checking if the rule holds
-                switch (_Check->TType) {
-
-                    case Take:
-                    REDC_JUMP(_Prev);
-                    REDC_JUMP(_Node);
-                    if (!_Node) { REDC_CRT_RUN_SHOW_FALSE_EXIT }
-
-                    if (_Node->DType == _Check->TData) { REDC_CRT_RUN_SHOW_TRUE; }
-                    else REDC_CRT_RUN_SHOW_FALSE_EXIT;
-                    
-                    break;
-
-                    case Upto:
-
-                    for (REDC_INT redc_i = 0; redc_i < _Check->TData; redc_i++) {
-                        REDC_JUMP(_Prev);
-                        REDC_JUMP(_Node);
-                        if (!_Node) REDC_CRT_RUN_SHOW_FALSE_EXIT
-                    }
-
-                    REDC_CRT_RUN_SHOW_TRUE;
-
-                    break;
-
-                    case Till:
-
-                    for ( REDC_JUMP(_Prev), REDC_JUMP(_Node); _Node && _Node->DType != _Check->TData; REDC_JUMP(_Prev), REDC_JUMP(_Node));
-                    if (!_Node) REDC_CRT_RUN_SHOW_FALSE_EXIT
-
-                    REDC_CRT_RUN_SHOW_TRUE;
-
-                    break;
-
-                    case Call:
-
-                    if (!_Check->TData) REDC_CRT_RUN_SHOW_FALSE_EXIT
-                    REDC_CRT_RUN_SHOW_TRUE;
-                    
-                    ((redc__func_ptr)(_Check->TPtr))();
-
-                    break;
-                    
+                if (_Log) {
+                    printf("relex : ");
+                    show_relex(_RelEx);
+                    putchar('\n');
                 }
 
-                _Check = _Check->Next;
+                struct redcRelExNode * _Check = _RelEx->Next->Next;
+
+                while (_Check) {
+                    if (_Log) redcShowRelExNode(_Check), putchar(' ');
+
+                    // Checking if the rule holds
+                    switch (_Check->TType) {
+
+                        case Take:
+                        REDC_JUMP(_Prev);
+                        REDC_JUMP(_Node);
+                        if (!_Node) { REDC_CRT_RUN_SHOW_FALSE_EXIT }
+
+                        if (_Node->DType == _Check->TData) { REDC_CRT_RUN_SHOW_TRUE; }
+                        else REDC_CRT_RUN_SHOW_FALSE_EXIT;
+                        
+                        break;
+
+                        case Upto:
+
+                        for (REDC_INT redc_i = 0; redc_i < _Check->TData; redc_i++) {
+                            REDC_JUMP(_Prev);
+                            REDC_JUMP(_Node);
+                            if (!_Node) REDC_CRT_RUN_SHOW_FALSE_EXIT
+                        }
+
+                        REDC_CRT_RUN_SHOW_TRUE;
+
+                        break;
+
+                        case Till:
+
+                        for ( REDC_JUMP(_Prev), REDC_JUMP(_Node); _Node && _Node->DType != _Check->TData; REDC_JUMP(_Prev), REDC_JUMP(_Node));
+                        if (!_Node) REDC_CRT_RUN_SHOW_FALSE_EXIT
+
+                        REDC_CRT_RUN_SHOW_TRUE;
+
+                        break;
+
+                        case Call:
+
+                        if (!_Check->TData) REDC_CRT_RUN_SHOW_FALSE_EXIT
+                        REDC_CRT_RUN_SHOW_TRUE;
+                        
+                        ((redc__func_ptr)(_Check->TPtr))();
+
+                        break;
+                        
+                    }
+
+                    _Check = _Check->Next;
+                }
+
+                _Matched = 1;
+                try_next:
+                if (!_Matched) _RelEx_i = redcRelExIs_Fnv(_Fnv, _Log);
+            }
+
+            if (!_Tried) continue;
+
+            if (!_Matched) {
+                REDC_CRT_RELINE_X;
+                REDC_CRT_POINTER = _FirstEnd;
+                return 0;
             }
 
             _Stop = _Node->Next;
 
             if (_RelEx) {
                 if (_RelEx->__crt_flag == 1) {
+
+                    _Before = REDC_CRT_POINTER;
+                    while (_Before->Next != _Start) REDC_JUMP(_Before);
 
                     _Before->Next = _Stop;
 
@@ -120,6 +155,8 @@ REDC_INT redcCRTRun(REDC_INT _Log, ...) {
                         redcBufferLength--;
                         _Start = _Next;
                     }
+
+                    _Node = _Before;
                 }
                 else {
                     REDC_CRT_POINTER = _Node;
